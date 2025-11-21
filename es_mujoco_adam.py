@@ -47,3 +47,20 @@ class ANN:
         X = np.atleast_2d(x)
         Y = self.forward(X)
         return Y[0] # first row
+    
+    def get_params():
+        # return a flat array of parameters
+        return np.concatenate([self.W1.flatten(), self.b1, self.W2.flatten(), self.b2])
+    
+    def get_params_dict(self):
+        return {
+            'W1': self.W1,
+            'b1': self.b1,
+            'W2': self.W2,
+            'b2': self.b2
+        }
+        
+    def set_params(self, params):
+        # params is a flat list
+        # unflatten into individual weights
+        D, M, K = self.D, self.M, self.K
