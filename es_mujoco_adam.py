@@ -41,3 +41,9 @@ class ANN:
         Z = self.f(X @ self.W1 + self.b1)
         return np.tanh(Z @ self.W2 + self.b2) * action_max
     
+    def sample_action(self, x):
+        # assume input is a single state of size (D,)
+        # firstmake it (N, D) to fit ML conventions
+        X = np.atleast_2d(x)
+        Y = self.forward(X)
+        return Y[0] # first row
