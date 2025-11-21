@@ -1,0 +1,43 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+from datetime import datetime
+import multiprocessing
+from multiprocessing import Pool
+
+import gymnasium as gym
+import sys
+
+# enviorment
+ENV_NAME = 'HalfCheetah-v5'
+
+### neural network
+
+# hyperparameters
+env = gym.make(ENV_NAME)
+D = np.prod(env.observation_space.shape)
+M = 128
+K = env.action_space.shape[0]
+action_max = env.action_space.high[0]
+
+def relu(x):
+    return x * (x > 0)
+
+class ANN:
+    def __init__(self, D, M, K, f=relu):
+        self.D = D
+        self.M = M
+        self.K = K
+        self.f = f
+        
+    def init(self):
+        D, M, K = self.D, self.M, self.K
+        self.W1 = np.random.randn(D, M) / np.sqrt(D)
+        self.b1 = np.zeros(M)
+        self.W2 = np.random.randn(M, K) / np.sqrt(M)
+        self.b2 = np.zeros(K)
+        
+    def forward(self, X):
+        Z = self.f(X @ self.W1 + self.b1)
+        return np.tanh(Z @ self.W2 + self.b2) * action_max
+    
