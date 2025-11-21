@@ -64,3 +64,7 @@ class ANN:
         # params is a flat list
         # unflatten into individual weights
         D, M, K = self.D, self.M, self.K
+        self.W1 = params[:D * M].reshape(D, M)
+        self.b1 = params[D * M: D * M + M]
+        self.W2 = params[D * M + M: D * M + M + M * K].reshape(M, K)
+        self.b2 = params[-K:]
