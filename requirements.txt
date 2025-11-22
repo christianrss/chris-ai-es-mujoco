@@ -1,4 +1,6 @@
 numpy
 matplotlib
-multiprocessing
+multiprocess
 gymnasium
+mujoco
+imageio
