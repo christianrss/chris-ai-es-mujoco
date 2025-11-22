@@ -113,6 +113,7 @@ def evolution_strategy(
         'maxiter': num_iters,
         'verb_disp': 1,
         'CMA_diagonal': False, # full covariance matrix
+        'CMA_mirrors': True, # use f(params+noise) and f(params-noise) to estimate gradient
     }
     es = cma.CMAEvolutionStrategy(params, sigma, options)
     
