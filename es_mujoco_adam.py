@@ -78,15 +78,132 @@ scaler = OnlineStandardScaler(D)
 class Adam:
     pass
 
-def evolution_strategy(f):
-    pass
-
-    # for t in range(num_iters):
-    #   R = pool.map(f, [list of inputs])
+def evolution_strategy(
+    f,
+    population_size,
+    sigma,
+    lr,
+    initial_params,
+    num_iters,
+    pool):
     
-def reward_function(params):
+    # assume initial params is a 1-D array
+    num_params = len(initial_params)
+    reward_per_iteration = np.zeros(num_iters)
+    
+    # create optmizer
+    params = initial_params
+    adam = Adam(params, lr)
+    
+    for t in range(num_iters):
+        t0 = datetime.now()
+        eps = np.random.randn(population_size, num_params)
+        
+        ### slow way
+        # R = np.zeros(population_size)
+        # for i in range(population_size):
+        # R[i] = f(params + sigma * eps[i])
+        
+        ### fast way
+        R = pool.map(f, [params + sigma * eps[i] for i in range(population_size)])
+        R = np.array(R)
+        
+        m = R.mean()
+        s = R.std()
+        if s == 0:
+            # we can't apply the folowing equation
+            print("Skipping")
+            continue
+
+        A = (R - m) / s
+        reward_per_iteration[t] = m
+        g = eps.T @ A / (population_size * sigma)
+        params= adam.update(g)
+
+        print("Iter: ", t, "Avg Reward:", m, "Max Reward:", R.max(), "Duration:", datetime.now() - t0)
+        
+    return params, reward_per_iteration
+    
+def reward_function(params, record=False):
     # run one episode of env w/ params
-    pass
+    model = ANN(D, M, K)
+    model.set_params(params)
+    
+    if record:
+        env = gym.make(ENV_NAME, render_mode="rgb_array")
+        env = gym.wrappers.RecordVideo(env, video_folder="videos", episode_trigger=lambda eps: True)
+    else:
+        env = gym.make(ENV_NAME)
+    env = gym.wrappers.RecordEpisodeStatistics(env)
+    
+    # play one episode and return total reward
+    episode_reward = 0
+    episode_length = 0
+    done = False
+    state, _ = env.reset()
+    while not done:
+        scaler.partial_fit(state)
+        state = scaler.transform(state)
+        
+        # get action
+        action = model.sample_action(state)
+        
+        # perform action
+        state, reward, done, truncated, info = env.step(action)
+        done = done or truncated
+        
+        # update total reward and length
+        episode_reward += reward
+        episode_length += 1
+        
+        
+    # close env
+    env.close()
+    
+    assert(info['episode']['r'] == episode_reward)
+    
 
 if __name__ == '__main__':
-    pool = Pool(4)
+    # create model
+    model = ANN(D, M, K)
+    
+    if len(sys.argv) > 1 and sys.argv[1] == 'play':
+        # play with a saved model
+        j = np.load('es_mujoco_results.npz')
+        best_params = np.concatenate([j['W1'].flatten(), j['b1'], j['W2'].flatten(), j['b2']])
+        
+        # in case initial shapes are not correct
+        D, M = j['W1'].shape
+        K = len(j['b2'])
+        model.D, model.M, model.K = D, M, K
+    else:
+        # pool for parallel evaluation
+        pool = Pool(4)
+        
+        # train and save model
+        model.init()
+        params = model.get_params()
+        best_params, rewards = evolution_strategy(
+            f=reward_function,
+            population_size=100,
+            sigma=0.5,
+            lr=0.02,
+            initial_params=params,
+            num_iters=300,
+            pool=pool
+        )
+        
+        # plot the rewards per iteration
+        plt.plot(rewards)
+        plt.show()
+        
+        #save params
+        model.set_params(best_params)
+        np.savez(
+            "es_mujoco_results.npz",
+            train=rewards,
+            **model.get_params_dict()
+        )
+    
+    # play with saved model / test episode
+    print("Test:", reward_function(best_params, record=True))
