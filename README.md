@@ -5,4 +5,6 @@ conda create -n esmujoco python=3.7
 
 conda activate esmujoco
 
-conda install numpy matplotlib conda-forge::multiprocess gymnasiumyhg
+conda install numpy matplotlib conda-forge::multiprocess gymnasium mujoco imageio moviepy
+
+Install last version of ffmpeg
