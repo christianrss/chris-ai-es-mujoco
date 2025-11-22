@@ -9,7 +9,7 @@ import gymnasium as gym
 import sys
 
 # enviorment
-ENV_NAME = 'HalfCheetah-v5'
+ENV_NAME = 'HalfCheetah-v4'
 
 ### neural network
 
@@ -68,3 +68,25 @@ class ANN:
         self.b1 = params[D * M: D * M + M]
         self.W2 = params[D * M + M: D * M + M + M * K].reshape(M, K)
         self.b2 = params[-K:]
+
+class OnlineStandardScaler:
+    def __init__(self, num_inputs):
+        pass
+    
+scaler = OnlineStandardScaler(D)
+
+class Adam:
+    pass
+
+def evolution_strategy(f):
+    pass
+
+    # for t in range(num_iters):
+    #   R = pool.map(f, [list of inputs])
+    
+def reward_function(params):
+    # run one episode of env w/ params
+    pass
+
+if __name__ == '__main__':
+    pool = Pool(4)
