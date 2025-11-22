@@ -78,11 +78,51 @@ scaler = OnlineStandardScaler(D)
 class Adam:
     pass
 
-def evolution_strategy(f):
-    pass
+def evolution_strategy(
+    f,
+    population_size,
+    sigma,
+    lr,
+    initial_params,
+    num_iters,
+    pool):
+    
+    # assume initial params is a 1-D array
+    num_params = len(initial_params)
+    reward_per_iteration = np.zeros(num_iters)
+    
+    # create optmizer
+    params = initial_params
+    adam = Adam(params, lr)
+    
+    for t in range(num_iters):
+        t0 = datetime.now()
+        eps = np.random.randn(population_size, num_params)
+        
+        ### slow way
+        # R = np.zeros(population_size)
+        # for i in range(population_size):
+        # R[i] = f(params + sigma * eps[i])
+        
+        ### fast way
+        R = pool.map(f, [params + sigma * eps[i] for i in range(population_size)])
+        R = np.array(R)
+        
+        m = R.mean()
+        s = R.std()
+        if s == 0:
+            # we can't apply the folowing equation
+            print("Skipping")
+            continue
 
-    # for t in range(num_iters):
-    #   R = pool.map(f, [list of inputs])
+        A = (R - m) / s
+        reward_per_iteration[t] = m
+        g = eps.T @ A / (population_size * sigma)
+        params= adam.update(g)
+
+        print("Iter: ", t, "Avg Reward:", m, "Max Reward:", R.max(), "Duration:", datetime.now() - t0)
+        
+    return reward_per_iteration
     
 def reward_function(params):
     # run one episode of env w/ params
