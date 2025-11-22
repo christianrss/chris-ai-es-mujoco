@@ -93,13 +93,26 @@ scaler = OnlineStandardScaler(D)
 class Adam:
     def __init__(self, params, lr , beta1=0.9, beta2=0.999, eps=1e-8):
         self.lr = lr
-        self.beta1 = beta1
-        self.beta2 = beta2
+        self.m = 0 # first moment
+        self.v = 0 # second moment
+        self.b1 = beta1
+        self.b2 = beta2
         self.eps = eps
+        self.t = 1 # time step
         self.params = params
         
     def update(self, g):
-        self.params += self.lr * g
+        # new m
+        self.m = self.b1 * self.m + (1 - self.b1) * g
+        # new v
+        self.v = self.b2 * self.v + (1 - self.b2) * g**2
+        # bias correction
+        m_hat = self.m / (1 - self.b1**self.t)
+        v_hat = self.v / (1 - self.b2**self.t)
+        # update time step
+        self.t += 1
+        # update params
+        self.params += self.lr * m_hat / (np.sqrt(v_hat) + self.eps)
         return self.params
 
 def evolution_strategy(
@@ -197,9 +210,9 @@ if __name__ == '__main__':
         best_params = np.concatenate([j['W1'].flatten(), j['b1'], j['W2'].flatten(), j['b2']])
         
         # in case initial shapes are not correct
-        D, M = j['W1'].shape
-        K = len(j['b2'])
-        model.D, model.M, model.K = D, M, K
+        # D, M = j['W1'].shape
+        # K = len(j['b2'])
+        # model.D, model.M, model.K = D, M, K
     else:
         # pool for parallel evaluation
         pool = Pool(4)
