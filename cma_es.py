@@ -105,21 +105,23 @@ def evolution_strategy(
     # assume initial params is a 1-D array
     num_params = len(initial_params)
     reward_per_iteration = []
+    best_avg_reward = -np.inf
     
     # create optmizer
     params = initial_params
     options = {
-        'popsize': population_size,
+        #'popsize': population_size,
+        'AdaptSigma': True,
         'maxiter': num_iters,
         'verb_disp': 1,
         'CMA_diagonal': False, # full covariance matrix
-        'CMA_mirrors': True, # use f(params+noise) and f(params-noise) to estimate gradient
+        #'CMA_mirrors': True, # use f(params+noise) and f(params-noise) to estimate gradient
     }
     es = cma.CMAEvolutionStrategy(params, sigma, options)
     
     while not es.stop():
         t0 = datetime.now()
-        solutions = es.ask()
+        offspring = es.ask()
         
         ### slow way
         # R = np.zeros(population_size)
@@ -127,16 +129,22 @@ def evolution_strategy(
         # R[i] = f(params + sigma * eps[i])
         
         ### fast way
-        R = pool.map(f, solutions)
+        R = pool.map(f, offspring)
         R = np.array(R)
         
-        es.tell(solutions, -R) # CMA-ES minimizes
+        es.tell(offspring, -R) # CMA-ES minimizes
         es.logger.add()
         reward_per_iteration.append(R.mean())
 
         print("Iter: ", es.countiter, "Avg Reward:", R.mean(), "Max Reward:", R.max(), "Duration:", datetime.now() - t0)
         
-    return es.best.get()[0], reward_per_iteration
+        # save best params if better than best avg reward so far
+        if R.mean() > best_avg_reward:
+            best_avg_reward = R.mean()
+            best_params = np.mean(offspring, axis=0)
+            assert(len(best_params) == num_params)
+        
+    return best_params, reward_per_iteration
     
 def reward_function(params, record=False):
     # run one episode of env w/ params
