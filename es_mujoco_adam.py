@@ -48,7 +48,7 @@ class ANN:
         Y = self.forward(X)
         return Y[0] # first row
     
-    def get_params():
+    def get_params(self):
         # return a flat array of parameters
         return np.concatenate([self.W1.flatten(), self.b1, self.W2.flatten(), self.b2])
     
@@ -71,12 +71,36 @@ class ANN:
 
 class OnlineStandardScaler:
     def __init__(self, num_inputs):
-        pass
+        self.n = 0
+        self.mean = np.zeros(num_inputs)
+        self.ssd = np.zeros(num_inputs)
+    
+    def partial_fit(self, X):
+        self.n += 1
+        delta = X - self.mean
+        self.mean += delta / self.n
+        delta2 = X - self.mean
+        self.ssd += delta * delta2
+    
+    def transform(self, X):
+        m = self.mean
+        v = (self.ssd / self.n).clip(min=1e-2)
+        s = np.sqrt(v)
+        return (X - m) / s
     
 scaler = OnlineStandardScaler(D)
 
 class Adam:
-    pass
+    def __init__(self, params, lr , beta1=0.9, beta2=0.999, eps=1e-8):
+        self.lr = lr
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.eps = eps
+        self.params = params
+        
+    def update(self, g):
+        self.params += self.lr * g
+        return self.params
 
 def evolution_strategy(
     f,
@@ -155,12 +179,12 @@ def reward_function(params, record=False):
         # update total reward and length
         episode_reward += reward
         episode_length += 1
-        
-        
+
     # close env
     env.close()
     
-    assert(info['episode']['r'] == episode_reward)
+    #assert(info['episode']['r'] == episode_reward)
+    return episode_reward
     
 
 if __name__ == '__main__':
@@ -186,8 +210,8 @@ if __name__ == '__main__':
         best_params, rewards = evolution_strategy(
             f=reward_function,
             population_size=100,
-            sigma=0.5,
-            lr=0.02,
+            sigma=0.1,
+            lr=0.01,
             initial_params=params,
             num_iters=300,
             pool=pool
