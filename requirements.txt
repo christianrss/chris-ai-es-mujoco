@@ -4,3 +4,4 @@ multiprocess
 gymnasium
 mujoco
 imageio
+moviepy
